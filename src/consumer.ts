@@ -297,7 +297,7 @@ export class Consumer extends EventEmitter {
 
   private async changeVisabilityTimeout(message: SQSMessage, timeout: number): Promise<PromiseResult<any, AWSError>> {
     try {
-      return this.sqs
+      return await this.sqs
         .changeMessageVisibility({
           QueueUrl: this.queueUrl,
           ReceiptHandle: message.ReceiptHandle,
