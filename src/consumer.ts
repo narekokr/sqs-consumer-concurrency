@@ -229,6 +229,7 @@ export class Consumer extends EventEmitter {
       debug('pushed');
       await this.workQueue.push(message);
       debug('done');
+      clearInterval(heartbeat);
       await this.deleteMessage(message);
       this.emit('message_processed', message);
     } catch (err) {
@@ -238,7 +239,6 @@ export class Consumer extends EventEmitter {
         await this.changeVisabilityTimeout(message, 0);
       }
     } finally {
-      clearInterval(heartbeat);
       this.queuePoll();
     }
   }
@@ -403,6 +403,7 @@ export class Consumer extends EventEmitter {
         });
       }
       await this.workQueue.push(messages);
+      clearInterval(heartbeat);
       await this.deleteMessageBatch(messages);
       messages.forEach((message) => {
         this.emit('message_processed', message);
@@ -414,7 +415,6 @@ export class Consumer extends EventEmitter {
         await this.changeVisabilityTimeoutBatch(messages, 0);
       }
     } finally {
-      clearInterval(heartbeat);
       this.queuePoll();
     }
   }
