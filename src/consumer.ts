@@ -301,6 +301,8 @@ export class Consumer extends EventEmitter {
   private async changeVisabilityTimeout(message: SQSMessage, timeout: number): Promise<PromiseResult<any, AWSError>> {
     try {
       this.emit('visibility', message);
+      // eslint-disable-next-line no-console
+      console.log('started');
       await this.sqs
         .changeMessageVisibility({
           QueueUrl: this.queueUrl,
@@ -308,6 +310,8 @@ export class Consumer extends EventEmitter {
           VisibilityTimeout: timeout
         })
         .promise();
+      // eslint-disable-next-line no-console
+      console.log('success');
       this.emit('success', message);
     } catch (err) {
       this.emit('error', err, message);
