@@ -301,13 +301,14 @@ export class Consumer extends EventEmitter {
   private async changeVisabilityTimeout(message: SQSMessage, timeout: number): Promise<PromiseResult<any, AWSError>> {
     try {
       this.emit('visibility', message);
-      return await this.sqs
+      await this.sqs
         .changeMessageVisibility({
           QueueUrl: this.queueUrl,
           ReceiptHandle: message.ReceiptHandle,
           VisibilityTimeout: timeout
         })
         .promise();
+      this.emit('success', message);
     } catch (err) {
       this.emit('error', err, message);
     }
