@@ -104,6 +104,7 @@ interface Events {
   'timeout_error': [Error, SQSMessage];
   'processing_error': [Error, SQSMessage];
   'stopped': [];
+  'visibility': [SQSMessage];
 }
 
 enum POLLING_STATUS {
@@ -297,6 +298,7 @@ export class Consumer extends EventEmitter {
 
   private async changeVisabilityTimeout(message: SQSMessage, timeout: number): Promise<PromiseResult<any, AWSError>> {
     try {
+      this.emit('visibility', message);
       return await this.sqs
         .changeMessageVisibility({
           QueueUrl: this.queueUrl,
