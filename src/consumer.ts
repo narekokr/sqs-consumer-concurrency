@@ -105,6 +105,7 @@ interface Events {
   'processing_error': [Error, SQSMessage];
   'stopped': [];
   'visibility': [SQSMessage];
+  'success': [SQSMessage];
 }
 
 enum POLLING_STATUS {
@@ -230,6 +231,7 @@ export class Consumer extends EventEmitter {
       debug('pushed');
       await this.workQueue.push(message);
       debug('done');
+      this.emit('success', message);
       clearInterval(heartbeat);
       await this.deleteMessage(message);
       this.emit('message_processed', message);
@@ -469,8 +471,8 @@ export class Consumer extends EventEmitter {
   }
 
   private startHeartbeat(heartbeatFn: () => void): NodeJS.Timeout {
-    return setInterval(() => {
-      heartbeatFn();
+    return setInterval(async () => {
+      await heartbeatFn();
     }, this.heartbeatInterval * 1000);
   }
 }
