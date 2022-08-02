@@ -233,6 +233,7 @@ export class Consumer extends EventEmitter {
       await this.deleteMessage(message);
       this.emit('message_processed', message);
     } catch (err) {
+      clearInterval(heartbeat);
       this.emitError(err, message);
 
       if (this.terminateVisibilityTimeout) {
