@@ -467,8 +467,8 @@ export class Consumer extends EventEmitter {
   }
 
   private startHeartbeat(heartbeatFn: () => void): NodeJS.Timeout {
-    return setInterval(() => {
-      heartbeatFn();
+    return setInterval(async () => {
+      await heartbeatFn();
     }, this.heartbeatInterval * 1000);
   }
 }
