@@ -238,10 +238,12 @@ export class Consumer extends EventEmitter {
       clearInterval(heartbeat);
       message.deletingInProgress = true;
       if (message.visibilityTimeoutRunning) {
-        await new Promise((resolve) => {
-          message.emitter.on('finished', resolve);
-          setTimeout(resolve, 10000);
-        });
+        await Promise.race([
+          new Promise((resolve) => {
+            message.emitter.on('finished', resolve);
+          }),
+          new Promise((resolve) => setTimeout(resolve, 10000))
+        ]);
       }
       await this.deleteMessage(message);
       this.emit('message_processed', message);
