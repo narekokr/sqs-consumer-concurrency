@@ -11,7 +11,12 @@ const debug = Debug('sqs-consumer');
 
 type ReceieveMessageResponse = PromiseResult<SQS.Types.ReceiveMessageResult, AWSError>;
 type ReceiveMessageRequest = SQS.Types.ReceiveMessageRequest;
-export type SQSMessage = SQS.Types.Message;
+export type SQSMessage = SQS.Types.Message & {
+  isDeleted?: boolean;
+  deletingInProgress?: boolean;
+  visibilityTimeoutRunning?: boolean;
+  emitter?: EventEmitter;
+};
 
 const requiredOptions = [
   'queueUrl',
@@ -221,15 +226,24 @@ export class Consumer extends EventEmitter {
 
     let heartbeat;
     try {
+      message.isDeleted = false;
+      message.emitter = new EventEmitter();
       if (this.heartbeatInterval) {
         heartbeat = this.startHeartbeat(async () => {
-          return this.changeVisabilityTimeout(message, this.visibilityTimeout);
+          await this.changeVisabilityTimeout(message, this.visibilityTimeout);
         });
       }
       debug('pushed');
       await this.workQueue.push(message);
       debug('done');
       clearInterval(heartbeat);
+      message.deletingInProgress = true;
+      if (message.visibilityTimeoutRunning) {
+        await new Promise((resolve) => {
+          message.emitter.on('finished', resolve);
+          setTimeout(resolve, 10000);
+        });
+      }
       await this.deleteMessage(message);
       this.emit('message_processed', message);
     } catch (err) {
@@ -298,6 +312,10 @@ export class Consumer extends EventEmitter {
 
   private async changeVisabilityTimeout(message: SQSMessage, timeout: number): Promise<PromiseResult<any, AWSError>> {
     try {
+      if (message.deletingInProgress) {
+        return;
+      }
+      message.visibilityTimeoutRunning = true;
       return await this.sqs
         .changeMessageVisibility({
           QueueUrl: this.queueUrl,
@@ -307,6 +325,9 @@ export class Consumer extends EventEmitter {
         .promise();
     } catch (err) {
       this.emit('error', err, message);
+    } finally {
+      message.visibilityTimeoutRunning = false;
+      message.emitter.emit('finished');
     }
   }
 
