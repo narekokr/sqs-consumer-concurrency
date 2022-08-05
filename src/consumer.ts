@@ -12,6 +12,7 @@ const debug = Debug('sqs-consumer');
 type ReceieveMessageResponse = PromiseResult<SQS.Types.ReceiveMessageResult, AWSError>;
 type ReceiveMessageRequest = SQS.Types.ReceiveMessageRequest;
 export type SQSMessage = SQS.Types.Message & {
+  isDeleted?: boolean;
   deletingInProgress?: boolean;
   visibilityTimeoutRunning?: boolean;
   emitter?: EventEmitter;
@@ -278,6 +279,7 @@ export class Consumer extends EventEmitter {
       await this.sqs
         .deleteMessage(deleteParams)
         .promise();
+      message.isDeleted = true;
     } catch (err) {
       throw toSQSError(err, `SQS delete message failed: ${err.message}`);
     }
@@ -322,7 +324,9 @@ export class Consumer extends EventEmitter {
         })
         .promise();
     } catch (err) {
-      this.emit('error', err, message);
+      if (!message.isDeleted) {
+        this.emit('error', err, message);
+      }
     } finally {
       message.visibilityTimeoutRunning = false;
       message.emitter.emit('finished');
